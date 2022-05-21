@@ -1,0 +1,226 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Finalne zadanie</title>
+		<script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+	    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.5/socket.io.min.js"></script>
+	    <script src="static/libs/plotly-latest.min.js"></script>
+		<script src="static/libs/gauge.min.js"></script>
+	    <script type="text/javascript" charset="utf-8">
+		  $(document).ready(function() {
+			document.getElementById("Graf").style.display = "none";
+			document.getElementById("Cifernik").style.display = "none";
+			  
+			var x = new Array();
+			var y = new Array();
+			var z = new Array();
+			var trace;
+			var trace2;
+			var layout;
+
+			var gauge = new RadialGauge({
+			renderTo: 'canvasID',
+			width: 300,
+			height: 300,
+			minValue: 0,
+			maxValue: 5,
+			valueInt: 1,
+			majorTicks: [
+			"0",
+			"0.25",
+			"0.5",
+			"0.75",
+			"1",
+			"1.25",
+			"1.5",
+			"1.75",
+			"2",
+			"2.25",
+			"2.5",
+			"2.75",
+			"3",
+			"3.25",
+			"3.5",
+			"3.75",
+			"4",
+			"4.25",
+			"4.5",
+			"4.75",
+			"5"
+			],
+			minorTicks: 2,
+			strokeTicks: true,
+			highlights: [
+			{
+			  "from": 4.5,
+			  "to": 5,
+			  "color": "rgba(200, 50, 50, .75)"
+			}
+			],
+			colorPlate: "#fff",
+			borderShadowWidth: 0,
+			borders: false,
+			needleType: "arrow",
+			needleWidth: 2,
+			needleCircleSize: 7,
+			needleCircleOuter: true,
+			needleCircleInner: false,
+			animationDuration: 1500,
+			animationRule: "linear"
+			});
+			gauge.draw();
+			gauge.value = "0";
+			  
+			namespace = '/test';
+			var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+			socket.on('connect', function() {
+			socket.emit('my_event', {data: 'I\'m connected!', value: 1}); 
+			});
+		
+			socket.on('my_response', function(msg) {
+			console.log(msg.data);
+			
+			$('#log').append('Received #'+msg.count+": "+msg.data+'<br>').html(); 
+			});
+			/*
+			$('#open').click(function(event) {
+				//var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+				console.log($('#open').val());
+				console.log("ddddddd");
+				
+				socket.emit('#connect', {value: $('#emit_value').val()});
+				
+				socket.on('connect', function() {
+				console.log("asdasasd");
+				socket.emit('my_event', {data: 'I\'m connected!', value: 1}); 
+				});
+			
+				console.log("bbbbbbb");
+				socket.on('my_response', function(msg) {
+				console.log(msg.data);
+				$('#log').append('Received #'+msg.count+": "+msg.data+'<br>').html(); 
+				console.log("aaaaaa");
+				});
+			});
+			*/
+			$('form#emit').submit(function(event) {
+				console.log($('#emit_value').val());
+				socket.emit('my_event', {value: $('#emit_value').val()});
+				return false; 
+			});
+			$('#buttonVal').click(function(event) {
+				console.log($('#buttonVal').val());
+				socket.emit('click_event', {value: $('#buttonVal').val()});
+				return false; 
+			});
+			/*
+			$('form#disconnect').submit(function(event) {
+				socket.emit('disconnect_request');
+				return false; 
+			}); 
+			*/
+			$('#close').click(function(event) {
+				console.log($('#close').val());
+				socket.emit('disconnect_request');
+				return false; 
+			});
+			$('#start').click(function(event) {
+				console.log($('#start').val());
+				socket.emit('click_event1', {value: $('#start').val()});
+				return false; 
+			});
+			$('#stop').click(function(event) {
+				console.log($('#stop').val());
+				socket.emit('click_event2', {value: $('#stop').val()});
+				return false; 
+			});
+			socket.on('my_response', function(msg) {
+			//console.log(msg.data);
+			$('#log').append('Received #'+msg.count+': '+msg.data+ '<br>').html(); 
+				gauge.value = msg.data; 
+				x.push(parseFloat(msg.count));
+				y.push(parseFloat(msg.data));
+				trace = {
+					x: x,
+					y: y,
+				};     
+				layout = {
+				  title: 'Data',
+				  xaxis: {
+					  title: 'x',
+				  },
+				  yaxis: {
+					  title: 'y',
+					  //range: [-1,1]
+				  }
+				};
+				console.log(trace);
+				var traces = new Array();
+				traces.push(trace);
+				Plotly.newPlot($('#plotdiv')[0], traces, layout); 
+				//addTraces 
+				});
+		}); 
+		
+		function ChangeTab(evt, name) {
+			var i, tabcontent, tablinks;
+			tabcontent = document.getElementsByClassName("tabcontent");
+			for (i = 0; i < tabcontent.length; i++) {
+				tabcontent[i].style.display = "none";
+			}
+			tablinks = document.getElementsByClassName("tablinks");
+			for (i = 0; i < tablinks.length; i++) {
+				tablinks[i].className = tablinks[i].className.replace(" active", "");
+			}
+			document.getElementById(name).style.display = "block";
+			evt.currentTarget.className += " active";
+		}        
+    </script>
+	</head>
+	<body>
+		<h1>Nadpis</h1>
+		
+		<h2>Send:</h2>
+		<form id="emit" method="POST" action='#'>
+			<input type="number" min=0 max="5" step=".01" name="emit_value" id="emit_value" placeholder="Amplituda">
+			<input type="submit" value="Send">
+		</form>
+		
+		<br>
+		<button id="open" type="button" value="open">Open</button>
+		<button id="close" type="button" value="close">Close</button>
+
+		<br><br>
+		<button id="start" type="button" value="start">Start</button>
+		<button id="stop" type="button" value="stop">Stop</button>
+		
+		<div class="tab">
+			<button class="tablinks" onclick="ChangeTab(event, 'Div')">Div</button>
+			<button class="tablinks" onclick="ChangeTab(event, 'Graf')">Graf</button>
+			<button class="tablinks" onclick="ChangeTab(event, 'Cifernik')">Cifernik</button>
+		</div>
+		
+		<div id="Div" class="tabcontent">
+			<h2>Div/Zoznam</h2>
+			<h3>Receive:</h3>
+			<div id="log"></div>
+		</div>
+		
+		<div id="Graf" class="tabcontent" style="display.none">
+			<h2>Graf</h2>
+			<div id="plotdiv" style="width:600px;height:250px;"></div>
+		</div>
+		
+		<div id="Cifernik" class="tabcontent">
+		<h2>Cifernik</h2>
+		
+		<canvas id="canvasID"></canvas>
+
+		</div>
+<!--
+		<h2>Receive:</h2>
+		<div id="log"></div>
+-->
+	</body>
+</html>
