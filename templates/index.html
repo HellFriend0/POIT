@@ -9,14 +9,21 @@
 	    <script type="text/javascript" charset="utf-8">
 		  $(document).ready(function() {
 			document.getElementById("Graf").style.display = "none";
+			document.getElementById("Subor").style.display = "none";
 			document.getElementById("Cifernik").style.display = "none";
 			  
 			var x = new Array();
 			var y = new Array();
 			var z = new Array();
+			var x2 = new Array();
+			var y2 = new Array();
+			var z2 = new Array();
 			var trace;
 			var trace2;
+			var trace3;
+			var trace4;
 			var layout;
+			var layout2;
 
 			var gauge = new RadialGauge({
 			renderTo: 'canvasID',
@@ -80,33 +87,15 @@
 		
 			socket.on('my_response', function(msg) {
 			console.log(msg.data);
-			
-			$('#log').append('Received #'+msg.count+": "+msg.data+'<br>').html(); 
 			});
-			/*
-			$('#open').click(function(event) {
-				//var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-				console.log($('#open').val());
-				console.log("ddddddd");
-				
-				socket.emit('#connect', {value: $('#emit_value').val()});
-				
-				socket.on('connect', function() {
-				console.log("asdasasd");
-				socket.emit('my_event', {data: 'I\'m connected!', value: 1}); 
-				});
-			
-				console.log("bbbbbbb");
-				socket.on('my_response', function(msg) {
-				console.log(msg.data);
-				$('#log').append('Received #'+msg.count+": "+msg.data+'<br>').html(); 
-				console.log("aaaaaa");
-				});
-			});
-			*/
 			$('form#emit').submit(function(event) {
 				console.log($('#emit_value').val());
 				socket.emit('my_event', {value: $('#emit_value').val()});
+				return false; 
+			});
+			$('form#row_select').submit(function(event) {
+				socket.emit('file_reading', {value: $('#file_row').val()});
+				console.log($('#file_row').val());
 				return false; 
 			});
 			$('#buttonVal').click(function(event) {
@@ -114,12 +103,6 @@
 				socket.emit('click_event', {value: $('#buttonVal').val()});
 				return false; 
 			});
-			/*
-			$('form#disconnect').submit(function(event) {
-				socket.emit('disconnect_request');
-				return false; 
-			}); 
-			*/
 			$('#close').click(function(event) {
 				console.log($('#close').val());
 				socket.emit('disconnect_request');
@@ -136,15 +119,19 @@
 				return false; 
 			});
 			socket.on('my_response', function(msg) {
-			//console.log(msg.data);
-			$('#log').append('Received #'+msg.count+': '+msg.data+ '<br>').html(); 
+			$('#log').append('Received #'+msg.count+': '+msg.data+ ': ' +msg.data2+  '<br>').html(); 
 				gauge.value = msg.data; 
 				x.push(parseFloat(msg.count));
 				y.push(parseFloat(msg.data));
+				z.push(parseFloat(msg.data2));
 				trace = {
 					x: x,
 					y: y,
-				};     
+				};
+				trace3 = {
+					x: x,
+					y: z,
+				};   
 				layout = {
 				  title: 'Data',
 				  xaxis: {
@@ -156,10 +143,43 @@
 				  }
 				};
 				console.log(trace);
-				var traces = new Array();
-				traces.push(trace);
+				var traces = [trace,trace3];
+				//traces.push(trace);
 				Plotly.newPlot($('#plotdiv')[0], traces, layout); 
 				//addTraces 
+				});
+			socket.on('file_response', function(msg) {
+				//gauge.value = msg.data;
+				const obj = JSON.parse(msg.data)
+				console.log(obj)
+				for(let i in obj){
+					x2.push(parseFloat(obj[i].x));
+					y2.push(parseFloat(obj[i].y));
+					z2.push(parseFloat(obj[i].v));
+				}
+				trace2 = {
+					x: x2,
+					y: y2,
+				}; 
+				trace4 = {
+					x: x2,
+					y: z2,
+				};     
+				layout2 = {
+				  title: 'Data',
+				  xaxis: {
+					  title: 'x',
+				  },
+				  yaxis: {
+					  title: 'y',
+					  //range: [-1,1]
+				  }
+				};
+				console.log(trace2);
+				//var traces2 = new Array();
+				var traces2 = [trace2,trace4];
+				//traces2.push(trace2);
+				Plotly.newPlot($('#plotdiv2')[0], traces2, layout2); 
 				});
 		}); 
 		
@@ -199,6 +219,7 @@
 			<button class="tablinks" onclick="ChangeTab(event, 'Div')">Div</button>
 			<button class="tablinks" onclick="ChangeTab(event, 'Graf')">Graf</button>
 			<button class="tablinks" onclick="ChangeTab(event, 'Cifernik')">Cifernik</button>
+			<button class="tablinks" onclick="ChangeTab(event, 'Subor')">Subor</button>
 		</div>
 		
 		<div id="Div" class="tabcontent">
@@ -207,20 +228,25 @@
 			<div id="log"></div>
 		</div>
 		
-		<div id="Graf" class="tabcontent" style="display.none">
+		<div id="Graf" class="tabcontent">
 			<h2>Graf</h2>
 			<div id="plotdiv" style="width:600px;height:250px;"></div>
 		</div>
 		
 		<div id="Cifernik" class="tabcontent">
-		<h2>Cifernik</h2>
-		
-		<canvas id="canvasID"></canvas>
-
+			<h2>Cifernik</h2>
+			<canvas id="canvasID"></canvas>
 		</div>
-<!--
-		<h2>Receive:</h2>
-		<div id="log"></div>
--->
+		
+		<div id="Subor" class="tabcontent">
+			<form id="row_select" method="POST" action='#'>
+				<input type="number" min="1" step="1" name="file_row" id="file_row" placeholder="Row">
+				<input type="submit" value="Send">
+			</form>
+			
+			<h2>Subor</h2>
+			<div id="plotdiv2" style="width:600px;height:250px;"></div>
+		</div>
+
 	</body>
 </html>

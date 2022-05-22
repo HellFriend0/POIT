@@ -16,31 +16,16 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
+
 btn = ""
 
 ser = serial.Serial("/dev/ttyS0")
 ser.baudrate = 9600
 
-# i =-1
-# while i <10:
-#     read_ser = ser.readline()
-#     print(read_ser.decode())
-#     print(i)
-#     p[i] = read_ser.decode()
-#     i=i+1
-#     
-# i=-1
-
-# while i <10:
-#     ser.write(bytes(x,"utf-8"))
-#     read_ser = ser.readline()
-#     print(read_ser.decode())
-#     print(i)
-#     p[i] = read_ser.decode()
-#     i=i+1
-
 def background_thread(args):
     count = 0
+    counter = 0
+    List = []
     global x
     x = "0"
     while True:
@@ -48,15 +33,37 @@ def background_thread(args):
             ser.write(bytes(x,"utf-8"))
             read_ser = ser.readline()
             read_ser = read_ser.decode('ascii').split(',')
-            print(read_ser)
+            
+            hodnota = read_ser[0]
+            hodnota = hodnota.strip("\r\n")
+            hodnota = float(hodnota)
+            
+            data = {
+            "x": counter,
+            "y": hodnota,
+            "v": float(x)/51
+            }
+            List.append(data)
+            counter += 1
+            
             socketio.emit('my_response',
-                          {'data':read_ser, 'count':count},
+                          {'data':read_ser,'data2':float(x)/51, 'count':count},
                           namespace='/test')
             count = count+1
-        else if btn == "stop":
-            ser.write(bytes(x,"utf-8"))
-            read_ser = ser.readline()
-            read_ser = read_ser.decode('ascii').split(',')
+        elif btn == "stop":
+            if len(List)>0:
+                array = str(List).replace("'","\"")
+                
+                write2file(array)
+                
+            List = []
+            counter = 0
+            
+            
+            #ser.write(bytes(x,"utf-8"))
+            #read_ser = ser.readline()
+            #read_ser = read_ser.decode('ascii').split(',')
+            
         else:
             ser.write(bytes(x,"utf-8"))
             read_ser = ser.readline()
@@ -65,8 +72,25 @@ def background_thread(args):
 @app.route('/')
 def index():
     return render_template('index.html', async_mode=socketio.async_mode)
-  
 
+@app.route('/write')
+def write2file(value):
+    fo = open("static/files/test.txt","a+")
+    val = value
+    fo.write("%s\r\n" %val)
+    return "done"
+
+@app.route('/read/<string:num>')
+def readmyfile(num):
+    fo = open("static/files/test.txt","r")
+    rows = fo.readlines()
+    return rows[int(num)-1]
+
+@socketio.on('file_reading', namespace='/test')
+def file_message(message):
+    row = message['value']
+    file = readmyfile(int(row))
+    emit('file_response',{'data':file})
 
 @socketio.on('my_event', namespace='/test')
 def test_message(message):
@@ -86,7 +110,7 @@ def test_connect():
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(target=background_thread, args=session._get_current_object())
-    emit('my_response', {'data': 'Connected', 'count': 0})
+    emit('my_response', {'data': 'Connected','data2' : 'I am', 'count': 0})
 
 @socketio.on('click_event', namespace='/test')
 def db_message(message):   
