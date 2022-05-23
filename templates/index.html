@@ -12,16 +12,6 @@
 			document.getElementById("Subor").style.display = "none";
 			document.getElementById("Cifernik").style.display = "none";
 			  
-			var x = new Array();
-			var y = new Array();
-			var z = new Array();
-			var x2 = new Array();
-			var y2 = new Array();
-			var z2 = new Array();
-			var trace;
-			var trace2;
-			var trace3;
-			var trace4;
 			var layout;
 			var layout2;
 
@@ -121,6 +111,11 @@
 			socket.on('my_response', function(msg) {
 			$('#log').append('Received #'+msg.count+': '+msg.data+ ': ' +msg.data2+  '<br>').html(); 
 				gauge.value = msg.data; 
+				var x = new Array();
+				var y = new Array();
+				var z = new Array();
+				var trace;
+				var trace3;
 				x.push(parseFloat(msg.count));
 				y.push(parseFloat(msg.data));
 				z.push(parseFloat(msg.data2));
@@ -151,6 +146,11 @@
 			socket.on('file_response', function(msg) {
 				//gauge.value = msg.data;
 				const obj = JSON.parse(msg.data)
+				var trace2;
+				var trace4;
+				var x2 = new Array();
+				var y2 = new Array();
+				var z2 = new Array();
 				console.log(obj)
 				for(let i in obj){
 					x2.push(parseFloat(obj[i].x));
@@ -177,7 +177,8 @@
 				};
 				console.log(trace2);
 				//var traces2 = new Array();
-				var traces2 = [trace2,trace4];
+				var traces2 = new Array();
+				traces2 = [trace2,trace4];
 				//traces2.push(trace2);
 				Plotly.newPlot($('#plotdiv2')[0], traces2, layout2); 
 				});
